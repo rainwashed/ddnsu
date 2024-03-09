@@ -1,0 +1,24 @@
+version="1.0.0" # this defines what your config file version is; it should not be touched
+updateFrequency=3600 # 3600ms is 60 minutes
+additionalIpProviders=[""] # note that the server must return a JSON object where "ip" is the property with the IP address
+copyIPv6=false # this will be implemented another day
+target="vercel" # choose between vercel or cloudflare as nameserver
+
+[vercel]
+authToken="token_goes_here"
+dnsReturnInstanceLimit=20
+domainTarget=["example.com"]
+
+[cloudflare] # support coming
+
+[[record]]
+recordType="A"
+comment="For our Minecraft server"
+ttl=60
+name="mc"
+
+[[record]]
+recordType="A"
+comment="Web server"
+ttl=80
+name="*"

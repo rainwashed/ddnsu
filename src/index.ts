@@ -1,2 +1,2 @@
-import "./service";
+// import "./service";
 import "./cli";
