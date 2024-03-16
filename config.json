@@ -1,4 +1,4 @@
 {
-  "defaultConfigFileLocation": "http://192.168.1.4:3002/li/ddnsu/raw/branch/main/example.config.toml",
+  "defaultConfigFileLocation": "https://raw.githubusercontent.com/rainwashed/ddnsu/main/example.config.toml",
   "defaultSystemdScriptLocation": ""
 }
