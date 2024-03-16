@@ -160,18 +160,25 @@ async function cloudflarePurge() {
 async function dnsUpdate() {
   let selection = Reader.get("target") as unknown as string;
   selection = selection.toLowerCase();
+
   if (selection === undefined) {
     throw "No target property in config file.";
   }
 
-  if (!(selection in ["vercel", "cloudflare"]))
+  if (["vercel", "cloudflare"].indexOf(selection) < 0)
     throw "Cloudflare or Vercel was not selected in the configuration file";
 
   switch (selection) {
     case "vercel":
+      var validAuth = await Vercel.testAuthToken();
+      if (!validAuth) throw "Vercel auth token is invalid.";
+
       vercelUpdate();
       break;
     case "cloudflare":
+      var validAuth = await Cloudflare.testAuthToken();
+      if (!validAuth) throw "Cloudflare auth token is invalid.";
+
       cloudflareUpdate();
       break;
   }
@@ -185,18 +192,26 @@ async function dnsPurge() {
 }
 
 function returnTomlState() {
-  let obj = Reader.return() as ConfigFile;
+  let obj = { ...(Reader.return() as ConfigFile) };
   delete obj["past"];
 
-  return obj as object;
+  return obj;
 }
 
+// FIXME: just fix this shit
 async function checkConfigPast() {
   let currentState = returnTomlState();
   let previousState = Reader.get("past") as unknown as ConfigFile["past"];
 
   if (previousState === undefined || previousState === "") {
-    console.log(chalk.gray("first time running program"));
+    console.log(chalk.gray("first time running program..."));
+    let currentStateStringBuffer = Buffer.from(
+      JSON.stringify(currentState)
+    ).toString("hex");
+
+    Reader.set(".past", currentStateStringBuffer); // NOTE: use . for top-level properties I guess when writing?
+    Reader.write();
+    Reader.reload();
   } else {
     let currentStateStringBuffer = Buffer.from(
       JSON.stringify(currentState)
@@ -210,13 +225,24 @@ async function checkConfigPast() {
       );
       await dnsPurge();
 
-      Reader.set("past", currentStateStringBuffer);
+      Reader.set(".past", currentStateStringBuffer);
       Reader.write();
     }
   }
 }
 
 // check previous state
-checkConfigPast();
+// checkConfigPast();
 
-// dnsUpdate();
+let updateFrequency: number = parseInt(
+  (
+    Reader.get("updateFrequency") as unknown as ConfigFile["updateFrequency"]
+  ).toString()
+);
+
+dnsUpdate();
+
+console.log(chalk.gray.italic(`Updating every: ${updateFrequency}ms...`));
+setInterval(dnsUpdate, updateFrequency);
+
+if (process.send !== undefined) process.send(`My current PID: ${process.pid}`);

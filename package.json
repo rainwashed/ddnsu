@@ -6,6 +6,10 @@
   "devDependencies": {
     "@types/bun": "latest"
   },
+  "scripts": {
+    "build_x64": "bkg -t x86_64-linux -o ./build/ddnsu.x64 .",
+    "build_arm64": "bkg -t aarch64-linux -o ./build/ddnsu.arm64 ."
+  },
   "peerDependencies": {
     "typescript": "^5.0.0"
   },

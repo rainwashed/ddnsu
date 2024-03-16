@@ -1,6 +1,15 @@
 {
-  "entry": "./src/index.ts",
-  "lto": {
-    "format": "cjs"
-  }
+  "entry": "src/index.ts",
+  "targets": ["x86_64-linux", "aarch64-linux"],
+  "includes": [
+    "src/cli.ts",
+    "src/service.ts",
+    "src/toml.ts",
+    "src/utils.ts",
+    "src/platforms/cloudflare.ts",
+    "src/platforms/vercel.ts",
+    "src/platforms/importer.ts",
+    "src/index.ts"
+  ],
+  "output": "build/"
 }

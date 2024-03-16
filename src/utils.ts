@@ -13,6 +13,7 @@ async function returnIp(): Promise<string> {
   for (let endpoint of ipReportingEndpoints) {
     try {
       let request = await fetch(endpoint);
+      if (!request.ok) throw await request.text();
       let data = (await request.json()) as {
         ip: string;
       };

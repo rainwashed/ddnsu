@@ -1,0 +1,34 @@
+name: "Build CLI with bkg"
+on:
+  push:
+    branches: ["master", "main"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    if: ${{ !contains(github.event.head_commit.message, 'ignore build') }}
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+      - name: Install project dependencies
+        run: bun i
+      - name: Install bkg tool
+        run: curl -fsSL https://github.com/theseyan/bkg/raw/main/install.sh | sudo sh
+      - run: mkdir build/
+      - name: Build for x64 architecture
+        working-directory: ./
+        run: bun run build_x64
+      - name: Build for arm64 architecture
+        working-directory: ./
+        run: bun run build_arm64
+      - name: Upload as GitHub release
+        uses: xresloader/upload-to-github-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          file: "build/*"
+          tags: true
+          draft: true

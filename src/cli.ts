@@ -4,6 +4,7 @@ import { Reader, configUrlPath, type ConfigFile } from "./toml";
 import chalk from "chalk";
 import centerAlign from "center-align";
 import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 if (process.platform !== "linux") {
   console.error(
@@ -114,16 +115,41 @@ namespace CliLookupFunction {
     await import("./service");
   }
 
-  export function kill() {
+  export function kill(pid: unknown) {
     console.log("kill function called");
+
+    if (typeof pid === "undefined" || pid === undefined)
+      throw "pass a PID to kill";
+
+    let pidCode = parseInt(pid as string);
+
+    if (Number.isNaN(pidCode)) throw "pass a number PID to kill";
+
+    Bun.spawn(["kill -15", pidCode.toString()]);
   }
 
   export function enable() {
     console.log("enable function called");
+    let child = Bun.spawn(["bun", "./service.ts"], {
+      cwd: resolve(process.cwd(), "src"),
+      ipc(message, childProc) {
+        let pid = child.pid;
+
+        console.log(
+          chalk.gray.italic(
+            `Spawned process has the PID of ${chalk.yellow(pid)}`
+          )
+        );
+      },
+    });
   }
 
   export function install() {
     console.log("install function called");
+  }
+
+  export async function purge() {
+    console.log("purge function called");
   }
 }
 
@@ -153,7 +179,7 @@ program
   .description("start ddnsu service")
   .action(CliLookupFunction.start);
 program
-  .command("kill")
+  .command("kill <pid>")
   .description("kill all ddnsu service instances in the background")
   .action(CliLookupFunction.kill);
 program
@@ -165,6 +191,10 @@ program
   .command("install")
   .description("install ddnsu as a systemd service (requires sudo)")
   .action(CliLookupFunction.install);
+program
+  .command("purge")
+  .description("purge all ddnsu records from DNS servers")
+  .action(CliLookupFunction.purge);
 
 program.parse(Bun.argv);
 const options = program.opts();
