@@ -3,13 +3,16 @@ updateFrequency=3600 # 3600ms is 60 minutes
 additionalIpProviders=[""] # note that the server must return a JSON object where "ip" is the property with the IP address
 copyIPv6=false # this will be implemented another day
 target="vercel" # choose between vercel or cloudflare as nameserver
+past="" # DO NOT TOUCH THIS PROPERTY, IT IS FOR TRACKING FILE CHANGES
 
 [vercel]
-authToken="token_goes_here"
+authToken="token_goes_here" # this can also be stored as an environment variable (VERCEL_AUTH_TOKEN)
 dnsReturnInstanceLimit=20
-domainTarget=["example.com"]
+domainTarget=["example.com"] # do not include protocols such as http:// or https://
 
-[cloudflare] # support coming
+[cloudflare]
+authToken="token_goes_here" # this can also be stored as an environment variable (CLOUDFLARE_AUTH_TOKEN)
+domainTarget=["example.com"]
 
 [[record]]
 recordType="A"

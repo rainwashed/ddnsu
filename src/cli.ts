@@ -1,16 +1,23 @@
 import { program } from "commander";
 import { version } from "../package.json";
-import { Reader } from "./toml";
-import { userInfo } from "node:os";
-import path from "node:path";
+import { Reader, configUrlPath, type ConfigFile } from "./toml";
+import chalk from "chalk";
+import centerAlign from "center-align";
+import { readFileSync } from "node:fs";
 
-const configUrlPath = path.resolve(
-  userInfo().homedir,
-  ".config",
-  "ddnsu",
-  "config.toml"
-);
-console.log(configUrlPath);
+if (process.platform !== "linux") {
+  console.error(
+    chalk.red(
+      "ddnsu ONLY works on Linux as it is meant to be run on a headless server."
+    )
+  );
+  process.exit(1);
+}
+
+if (typeof Bun === "undefined" || !process.versions.bun) {
+  console.error(chalk.red("ddnsu runs on the BUN runtime (https://bun.sh/)."));
+  process.exit(100);
+}
 
 namespace CliLookupFunction {
   export function config_version() {
@@ -20,11 +27,91 @@ namespace CliLookupFunction {
   }
 
   export function config() {
-    console.log("config function called");
+    let tomlTxt = readFileSync(configUrlPath, {
+      encoding: "utf-8",
+    }).toString();
+
+    console.log(
+      centerAlign(
+        chalk.bold(
+          `--- .toml file content (${chalk.italic(configUrlPath)}) ---`
+        ),
+        process.stdout.columns
+      )
+    );
+    console.log(chalk.italic.gray(tomlTxt));
+    console.log(
+      centerAlign(
+        chalk.bold("--- toml object representation ---"),
+        process.stdout.columns
+      )
+    );
+    console.log(chalk.italic.gray(JSON.stringify(Reader.return(), null, 2)));
+    console.log(
+      centerAlign(
+        chalk.bold("--- .toml validation ---"),
+        process.stdout.columns
+      )
+    );
+
+    let requiredConfigurationValues = [
+      "version",
+      "updateFrequency",
+      "target",
+      "vercel.authToken",
+      "vercel.domainTarget",
+      "record",
+    ];
+
+    for (let configurationValue of requiredConfigurationValues) {
+      let v = Reader.get(configurationValue);
+
+      if (v !== undefined) {
+        console.log(chalk.green(`[✅] - ${configurationValue}`));
+      } else {
+        console.log(chalk.red(`[❌] - ${configurationValue}`));
+      }
+    }
+
+    let i = 0;
+    let requiredRecordValues = ["recordType", "comment", "ttl", "name"];
+    let existingComments = [];
+
+    for (let record of Reader.get("record") as { [key: string]: any }[]) {
+      console.log(`[${i}]`);
+      for (let recordConfigurationValue of requiredRecordValues) {
+        if (
+          !(recordConfigurationValue in record) ||
+          record[recordConfigurationValue] === undefined
+        ) {
+          console.log(chalk.red(`[❌] - ${recordConfigurationValue}`));
+        } else {
+          console.log(chalk.green(`[✅] - ${recordConfigurationValue}`));
+        }
+      }
+
+      existingComments.push(record["comment"]);
+      i++;
+    }
+
+    existingComments.forEach((v, i) => {
+      if (i < 1) return;
+      let p = existingComments[i - 1];
+      if (p === v) {
+        console.log(chalk.red(`"${p}" == "${v}" (same comments cannot exist)`));
+      }
+    });
   }
 
-  export function start() {
-    console.log("start function called");
+  export async function start() {
+    console.log(
+      chalk.italic(
+        `starting service in current terminal process (${chalk.yellow(
+          process.pid
+        )})...`
+      )
+    );
+    await import("./service");
   }
 
   export function kill() {
@@ -56,7 +143,9 @@ program
 
 program
   .command("config")
-  .description("print out content of configuration file and location")
+  .description(
+    "validate and print out content of configuration file and location"
+  )
   .action(CliLookupFunction.config);
 
 program
@@ -80,4 +169,4 @@ program
 program.parse(Bun.argv);
 const options = program.opts();
 
-console.log(options);
+// console.log(options);

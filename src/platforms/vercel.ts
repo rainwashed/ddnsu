@@ -5,7 +5,7 @@ const vercelAuthToken =
   Reader.get("vercel.authToken") ??
   undefined;
 if (vercelAuthToken === undefined) {
-  throw "Vercel auth token is not configured in the .env file or command environment.";
+  throw "Vercel auth token is not configured in the .env file, command environment, or configuration file.";
 }
 
 let defaultHeadersObject = {
@@ -115,6 +115,7 @@ async function returnDNSListings(domain: string) {
         type: record.type,
         value: record.value,
         comment: record.comment,
+        ttl: record.ttl,
       };
     });
 
