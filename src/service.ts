@@ -189,6 +189,7 @@ async function dnsPurge() {
   await vercelPurge();
   console.log(chalk.yellow.italic("deleting DDNSU Cloudflare records..."));
   await cloudflarePurge();
+  process.exit(0);
 }
 
 function returnTomlState() {
@@ -240,9 +241,11 @@ let updateFrequency: number = parseInt(
   ).toString()
 );
 
-dnsUpdate();
+function start() {
+  dnsUpdate();
 
-console.log(chalk.gray.italic(`Updating every: ${updateFrequency}ms...`));
-setInterval(dnsUpdate, updateFrequency);
+  console.log(chalk.gray.italic(`Updating every: ${updateFrequency}ms...`));
+  setInterval(dnsUpdate, updateFrequency);
+}
 
-if (process.send !== undefined) process.send(`My current PID: ${process.pid}`);
+export { dnsPurge, start };
