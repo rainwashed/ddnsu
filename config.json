@@ -1,5 +1,5 @@
 {
   "defaultConfigFileLocation": "https://raw.githubusercontent.com/rainwashed/ddnsu/main/example.config.toml",
-  "defaultSystemdScriptLocation": "",
+  "defaultSystemdScriptLocation": "https://raw.githubusercontent.com/rainwashed/ddnsu/main/ddnsu.service",
   "githubApiEndpoint": "https://api.github.com/repos/rainwashed/ddnsu/releases"
 }

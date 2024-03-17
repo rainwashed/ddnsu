@@ -1,6 +1,9 @@
 import { program } from "commander";
 import { version } from "../package.json";
-import { githubApiEndpoint } from "../config.json";
+import {
+  githubApiEndpoint,
+  defaultSystemdScriptLocation,
+} from "../config.json";
 import { Reader, configUrlPath, type ConfigFile } from "./toml";
 import chalk from "chalk";
 import centerAlign from "center-align";
@@ -8,6 +11,8 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { arch, userInfo } from "node:os";
 import fs from "node:fs";
+import { createPrompt } from "bun-promptx";
+import { $ } from "bun";
 
 if (process.platform !== "linux") {
   console.error(
@@ -226,11 +231,20 @@ namespace CliLookupFunction {
       "ddnsu",
       "ddnsu.bin"
     );
+    const systemdTempStoragePath = resolve(
+      userInfo().homedir,
+      ".config",
+      "ddnsu",
+      "ddnsu.service"
+    );
+
+    if (!fs.existsSync("/etc/systemd/system"))
+      throw "systemd has not been detected on the system!";
 
     try {
       let osArchitecture = arch();
       console.log(
-        chalk.gray.italic(`Installing for ${osArchitecture} architecture...`)
+        chalk.gray.italic(`Downloading for ${osArchitecture} architecture...`)
       );
 
       let githubRequestObj = (
@@ -260,6 +274,44 @@ namespace CliLookupFunction {
       console.log(
         chalk.green.bold(
           `Successfully downloaded the binary to ${binStoragePath}`
+        )
+      );
+
+      console.log(
+        chalk.gray.italic(`Copying systemd script and making edits...`)
+      );
+      let systemdScriptRequest = await fetch(defaultSystemdScriptLocation);
+      let systemdScriptText = await systemdScriptRequest.text();
+      let username = userInfo().username;
+
+      systemdScriptText = systemdScriptText.replaceAll("{username}", username);
+
+      fs.writeFileSync(systemdTempStoragePath, systemdScriptText, {
+        encoding: "utf-8",
+        flag: "w",
+      });
+
+      console.log(
+        chalk.greenBright.bold(
+          `Successfully copied systemd script to ${systemdTempStoragePath} for "${username}"`
+        )
+      );
+
+      console.log(
+        "ddnsu-cli will now ask you for your user password (password used for sudo through the echo of the password piped into sudo -S flag). The password will be piped into a script as to move the service script from the cache directory to the actual systemd service."
+      );
+      let sudoPassword = createPrompt("sudo password: ", {
+        echoMode: "password",
+      });
+
+      // prettier-ignore
+      await $`echo "${sudoPassword.value}" | sudo -S -k mv ${systemdTempStoragePath.toString()} /etc/systemd/system/`.quiet();
+
+      console.log(
+        chalk.green.bold(
+          `ddnsu should be installed in the systemd directory (/etc/systemd/system/) and can be started by using ${chalk.italic(
+            "systemctl start ddnsu.service"
+          )}`
         )
       );
     } catch (error) {
@@ -318,6 +370,7 @@ program
   .description("purge all ddnsu records from DNS servers")
   .action(CliLookupFunction.purge);
 
+if (Bun.argv.length === 2) program.outputHelp();
 program.parse(Bun.argv);
 const options = program.opts();
 
